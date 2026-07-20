@@ -9,7 +9,7 @@ import jwt from "jsonwebtoken";
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
         // Fetch user to attach tokens to
-        const user = await User.findbyId(userId);   
+        const user = await User.findById(userId);   
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
@@ -120,7 +120,7 @@ const login =   asyncHandler(async (req , res ) => {
     return res
             .status(200)
             .cookie("accessToken" , accessToken , options)
-            .cookie("refreshToken" , refreshToken , option)
+            .cookie("refreshToken" , refreshToken , options)
             .json(
                 new ApiResponse(
                     200,
