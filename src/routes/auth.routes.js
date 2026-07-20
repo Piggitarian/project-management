@@ -6,7 +6,7 @@ import { login } from "../controllers/auth.controllers.js";
 const router = Router();
 
 router.route("/register").post(userResgisterValidator() ,validate ,  registerUser);
-router.route("/login").post(login);
+router.route("/login").post(userLoginValidator(), validate , login);
 
 
 export default router;
