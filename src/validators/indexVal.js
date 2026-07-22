@@ -77,5 +77,7 @@ const userResetForgotValidators = () => {
 export{
     userResgisterValidator , 
     userLoginValidator,
-    userChangeCurrentPassowrdValidator
+    userChangeCurrentPassowrdValidator,
+    userForgotPasswordValidator,
+    userResetForgotValidators
 }
