@@ -304,7 +304,7 @@ const forgotPasswordRequest = asyncHandler( async (req ,res) => {
     user.forgotPasswordToken = hashedToken;
     user.forgotPasswordExpiry = tokenExpiry;
 
-    await user.save({validateBeforeSave: save})
+    await user.save({validateBeforeSave: true})
 
     await sendEmail({
         email: user?.email,
@@ -325,7 +325,45 @@ const forgotPasswordRequest = asyncHandler( async (req ,res) => {
                     "Password reset mail has been sent on your mail id"
                 )
             )
-})
+});
+
+const resetForgotPassword  = asyncHandler(async (req , res) => {
+    const {resetToken} = req.params
+    const {newPassword} = req.body
+
+    let hashedToken = cryto
+            .createHash("sha256")
+            .update(resetToken)
+            .digest("hex")
+    
+    await User.findOne({
+        forgotPasswordToken: hashedToken,
+        forgotPasswordExpiry: {$gt: Date.now()},
+    });
+
+    if(!user){
+        throw new ApiError(489 , "token invalid or expired")
+    }
+
+    user.forgotPasswordExpiry = undefined
+    user.forgotPasswordToken = undefined
+
+    user.password = newPassword
+    await user.save({validateBeforeSave: false})
+
+    return res
+            .status(200)
+            .json(
+                new ApiResponse(
+                    200,
+                    {},
+                    "password reseted successfully"
+                )
+            )
+});
+const changeCurrentPassword  = asyncHandler(async (req , res) => {
+    
+});
 
 export {
     registerUser,
@@ -334,5 +372,7 @@ export {
     getCurentUser,
     verifyEmail,
     resendEmailverification,
-    refreshAccessToken
+    refreshAccessToken,
+    forgotPasswordRequest,
+
 }
