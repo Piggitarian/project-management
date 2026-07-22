@@ -205,6 +205,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
         )
 });
 
+// Resends the verification email: blocks if the account is already verified, otherwise issues a new token and re-sends it
 const resendEmailverification = asyncHandler(async (req , res) => {
     const user = await User.findById(req.user?._id);
 
@@ -244,6 +245,7 @@ const resendEmailverification = asyncHandler(async (req , res) => {
 
 });
 
+// Issues a new access + refresh token pair from a valid refresh token (cookie or body), so the user stays logged in without re-entering credentials
 const refreshAccessToken = asyncHandler(async (req , res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
@@ -291,6 +293,7 @@ const refreshAccessToken = asyncHandler(async (req , res) => {
     }
 });
 
+// Starts the forgot-password flow: generates a reset token for the given email and emails the reset link
 const forgotPasswordRequest = asyncHandler( async (req ,res) => {
     const {email} = req.body
 
@@ -327,6 +330,7 @@ const forgotPasswordRequest = asyncHandler( async (req ,res) => {
             )
 });
 
+// Completes the forgot-password flow: verifies the reset token from the URL and sets the new password
 const resetForgotPassword  = asyncHandler(async (req , res) => {
     const {resetToken} = req.params
     const {newPassword} = req.body
@@ -361,6 +365,7 @@ const resetForgotPassword  = asyncHandler(async (req , res) => {
                 )
             )
 });
+// Lets a logged-in user change their password after confirming the old one
 const changeCurrentPassword  = asyncHandler(async (req , res) => {
     const {oldPassword , newPassword} = req.body
 
