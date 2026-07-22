@@ -4,7 +4,7 @@ import {ApiError} from "../utils/api-error.js"
 import { asyncHandler } from "../utils/async-handler.js";
 import {emailVerificationMailgenContent, sendEmail} from "../utils/mail.js"
 import jwt from "jsonwebtoken";
-
+import crypto from "crypto";
 
 // Helper: generates a new access + refresh token pair for a user and saves the refresh token to DB
 const generateAccessAndRefreshTokens = async (userId) => {
