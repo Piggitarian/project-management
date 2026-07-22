@@ -59,15 +59,21 @@ const userChangeCurrentPassowrdValidator = () => {
 const userForgotPasswordValidator = () => {
         return [
                 body("email")
-                        .notEmpty
+                        .notEmpty()
                         .withMessage("can't be empty")
                         .isEmail()
-                        .withMessage("email is invalid"),
-                body("password")
-                                .notEmpty()
-                                .withMessage("cant be empty")
+                        .withMessage("email is invalid")
         ]
 }
+
+const userResetForgotValidators = () => {
+        return [
+                body("newPassword")
+                        .trim()
+                        .notEmpty()
+                        .withMessage("cant be empty")
+        ]
+}    
 export{
     userResgisterValidator , 
     userLoginValidator,
