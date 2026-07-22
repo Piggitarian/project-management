@@ -6,14 +6,13 @@ import {emailVerificationMailgenContent, sendEmail} from "../utils/mail.js"
 import jwt from "jsonwebtoken";
 
 
+// Helper: generates a new access + refresh token pair for a user and saves the refresh token to DB
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
-        // Fetch user to attach tokens to
         const user = await User.findById(userId);   
         const accessToken = user.generateAccessToken();
         const refreshToken = user.generateRefreshToken();
 
-        // Save refresh token to DB without triggering validation errors
         user.refreshToken = refreshToken;
         await user.save({validateBeforeSave: false})
         return {accessToken , refreshToken}
@@ -22,11 +21,11 @@ const generateAccessAndRefreshTokens = async (userId) => {
     }
 }
 
+// Registers a new user: checks for duplicate username/email, creates the user, generates
+// an email verification token, sends the verification email, and returns the created user
 const registerUser = asyncHandler(async (req,res)=>{
-    // 1. Extract raw data from the request body
     const { email , username , password , role}= req.body;
     
-    // 2. Check if username or email is already taken
     const exsistingUser = await User.findOne({
         $or: [{username} , {email}]
     })
@@ -35,7 +34,6 @@ const registerUser = asyncHandler(async (req,res)=>{
         throw new ApiError(409 , "Username or Email already exsists" , []);
     }
 
-    // 3. Create user in DB (password hashes automatically via schema hook)
     const user = await User.create({
         email,
         password,
@@ -43,7 +41,6 @@ const registerUser = asyncHandler(async (req,res)=>{
         isEmailVerified : false
     });
 
-    // 4. Generate email verification token and save it to the user doc
     const {unHasedToken , Hashedtoken , tokenExpiry} = 
         user.generateTemporaryToken();
 
@@ -52,7 +49,6 @@ const registerUser = asyncHandler(async (req,res)=>{
 
     await user.save({validateBeforeSave : false})
 
-    // 5. Fire off the verification email via Mailtrap
     await sendEmail(
         {
             email: user?.email,
@@ -64,7 +60,6 @@ const registerUser = asyncHandler(async (req,res)=>{
 
         });
         
-        // 6. Fetch the newly created user (excluding sensitive data) to send back
         const createdUser = await User.findById(user._id).select(
             "-password -refreshToken -emailVerificationToken -emailVerificationExpiry   "
         );
@@ -73,7 +68,6 @@ const registerUser = asyncHandler(async (req,res)=>{
             throw new ApiError(500 , "something went wrong ")
         }
         
-        // 7. Send the final success response to the frontend
         return res
                 .status(201)
                 .json(
@@ -85,6 +79,8 @@ const registerUser = asyncHandler(async (req,res)=>{
                 )
 });
 
+// Logs a user in: validates email, checks password, issues access + refresh tokens as
+// cookies and in the response body
 const login =   asyncHandler(async (req , res ) => {
     const {email , password , username } = req.body
 
@@ -115,8 +111,6 @@ const login =   asyncHandler(async (req , res ) => {
         secure : true
     }
 
-
-
     return res
             .status(200)
             .cookie("accessToken" , accessToken , options)
@@ -135,6 +129,7 @@ const login =   asyncHandler(async (req , res ) => {
 
 });
 
+// Logs a user out: clears their stored refresh token in DB and clears auth cookies
 const logoutUser  = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
@@ -158,5 +153,56 @@ const logoutUser  = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {} , "User logged Out"));    
 })
 
+// Returns the currently authenticated user (from req.user, set by verifyJWT middleware)
+const getCurentUser = asyncHandler(async (req, res) => {
+        return  res.status(200).json(
+            new ApiResponse(
+                200,
+                req.user,
+                "Current User fetched Successully"
+            )
+        )
+})
 
-export {registerUser , login , logoutUser }
+// Verifies a user's email using the token from the URL: hashes it, matches against DB,
+// checks expiry, and marks the user as verified
+const verifyEmail = asyncHandler(async (req, res) => {
+    const { verificationToken } = req.params
+
+    if(!verificationToken){
+        throw new ApiError(400 , "Email verification token is missing");
+    }
+
+    let hashedToken = crypto
+                        .createHash("sha256")
+                        .update(verificationToken)
+                        .digest("hex");
+    const user = await User.findOne({
+        emailVerificationToken: hashedToken,
+        emailVerificationExpiry: {$gt: Date.now()},
+    })
+
+    if(!user){
+        throw new ApiError(400 , "token is invalid or expired");
+    }
+
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+
+    user.isEmailVerified = true
+    await user.save({validateBeforeSave: false})
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    isEmailVerified : true
+                },
+                "Email is Verfied all ok full ok"
+            )
+        )
+})
+
+export {registerUser , login , logoutUser , getCurentUser , verifyEmail}
