@@ -402,7 +402,7 @@ const resetForgotPassword  = asyncHandler(async (req , res) => {
     });
 
     if(!user){
-        throw new ApiError(400 , "token invalid or expired")
+        throw new ApiError(489 , "token invalid or expired")
     }
 
     // 4. Wipe the reset tokens from the DB to prevent reuse
